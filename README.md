@@ -1,2 +1,3 @@
 # OraReportMaker
-1. 支持12c数据库的AWR报告导出
+## 开发日志
+### 20180819 新增程序的logger,后续日志输出统一使用自定义的logger
