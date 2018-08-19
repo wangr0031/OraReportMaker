@@ -37,10 +37,10 @@ class OpsDb():
 
     def export_data_from_table(self,table_name):
         pass
-
+##导出AWR报告
     def export_awr_report(self):
         pass
-
+##导出ASH报告
     def export_ash_report(self):
         pass
 
