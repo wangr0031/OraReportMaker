@@ -33,10 +33,10 @@ class OpsDb():
         try:
             db_cursor.execute(dml_sql.strip(strip_word))
             db_con_instance.commit()
-            logger.info("execute DML <{}> success and commit".format(dml_sql.strip(strip_word)))
+            logger.info("Execute DML statement <{}> success and commit".format(dml_sql.strip(strip_word)))
             db_cursor.close()
         except Exception as err:
-            logger.error("Execute DML [{}] statment get error.".format(dml_sql))
+            logger.error("Execute DML statement [{}] get error.".format(dml_sql))
             logger.error("error info:\n{}".format(err))
             db_con_instance.rollback()
             db_cursor.close()
@@ -46,10 +46,10 @@ class OpsDb():
         db_cursor = db_con_instance.cursor()
         print("ddl = ", ddl_sql.strip(strip_word))
         try:
-            logger.debug("Execute DDL = {}".format(ddl_sql))
+            logger.debug("Execute DDL statement <{}>".format(ddl_sql))
             # db_cursor.execute(ddl_sql.strip(strip_word))
         except Exception as err:
-            logger.error("Execute DDL [{}] statment get error.".format(ddl_sql))
+            logger.error("Execute DDL statement [{}] get error.".format(ddl_sql))
             logger.error("error info:\n{}".format(err))
             db_cursor.close()
             exit()
@@ -60,7 +60,7 @@ class OpsDb():
             db_cursor.execute(select_sql.strip(strip_word))
             select_result = db_cursor.fetchall()
         except Exception as err:
-            logger.error("Execute SELECT [{}] statment get error.".format(select_sql))
+            logger.error("Execute SELECT statement <{}> get error.".format(select_sql))
             logger.error("error info:\n{}".format(err))
             db_cursor.close()
             exit()
@@ -71,6 +71,35 @@ class OpsDb():
 
     ##导出AWR报告
     def export_awr_report(self):
+        '''
+1、根据取AWR报告的时间范围，查出快照ID；
+
+SELECT *
+  FROM DBA_HIST_SNAPSHOT T
+ WHERE T.END_INTERVAL_TIME >=
+       TO_DATE('2017-10-09 09:00:00', 'yyyy-MM-dd hh24:mi:ss')
+   AND T.END_INTERVAL_TIME <=
+       TO_DATE('2017-10-09 10:01:00', 'yyyy-MM-dd hh24:mi:ss')
+ ORDER BY SNAP_ID;
+2、利用第一步的END_INTERVAL_TIME,SNAP_ID,DBID,INSTANCE_NUMBER生成报告
+SELECT *
+  FROM TABLE(DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_HTML(1700577032,
+                                                      1,
+                                                      38247,
+                                                      38251,
+                                                      0));
+或者：
+SELECT DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_HTML(1700577032,
+                                                      1,
+                                                      38247,
+                                                      38251,
+                                                      0) FROM dual;
+3、把结果粘贴到一个txt中，比如a.txt保存退出。然后改此文件后缀为html,比如a.html.
+最后用浏览器打开a.html即可 ，如果需要生成txt格式的报告，
+则用DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_TEXT这个函数即可
+https://blog.csdn.net/xuemeilu/article/details/78180615?locationNum=9&fps=1
+        :return:
+        '''
         pass
 
     ##导出ASH报告
