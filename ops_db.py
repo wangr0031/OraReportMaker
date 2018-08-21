@@ -13,7 +13,7 @@ class OpsDb():
         self.db_dns = db_dns
         self.cx_con = self.connect_db(con_mode)
 
-    def connect_db(self, con_mode):
+    def connect_db(self, con_mode=None):
         try:
             if con_mode is not None:
                 cx_con = cx_Oracle.connect(self.db_username, self.db_password, self.db_dns, mode=con_mode)
@@ -126,5 +126,7 @@ class OpsDb():
 
 
 if __name__ == '__main__':
-    o = OpsDb('cpc_flow', '1jian8Shu', '172.16.80.11:11521/cc')
-    o.clean_db_schema_by_user()
+    o = OpsDb('cpc_flow', '1jian8Shu!', '172.16.80.11:11521/cc')
+    oi=o.connect_db()
+    o.select_data(oi,'select * from user')
+    #o.clean_db_schema_by_user()
