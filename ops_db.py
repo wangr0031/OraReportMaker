@@ -101,7 +101,14 @@ class OpsDb():
         pass
 
     ##导出AWR报告
-    def export_awr_report(self):
+    def get_awr_element_from_db(self):
+        with open('CONF/get_awr_element.cfg', 'rb') as f:
+            sql_cfg = yaml.load(f)
+        l_dbid=self.select_data(self.cx_con, sql_cfg['awr_element']['get_dbid'])
+        l_instance_number = self.select_data(self.cx_con, sql_cfg['awr_element']['get_instance_number'])
+        l_snapshot_set = self.select_data(self.cx_con, sql_cfg['awr_element']['get_snapshot_id'])
+        pass
+    def export_awr_report(self,start_date,end_date):
         pass
 
     ##导出ASH报告
