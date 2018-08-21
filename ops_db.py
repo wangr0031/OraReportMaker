@@ -13,18 +13,27 @@ class OpsDb():
         self.db_dns = db_dns
         self.cx_con = self.connect_db(con_mode)
 
-    def connect_db(self, con_mode):
+    def connect_db(self, con_mode=None):
         try:
             if con_mode is not None:
                 cx_con = cx_Oracle.connect(self.db_username, self.db_password, self.db_dns, mode=con_mode)
             else:
                 cx_con = cx_Oracle.connect(self.db_username, self.db_password, self.db_dns)
             logger.info("Connect to Database Success!")
-        except Exception as err:
+        except cx_Oracle.DatabaseError as oraerr:
+            #print (oraerr.args,dir(oraerr.args))
+            error, = oraerr.args
             logger.error("Connect to Database [username={},password={},ora_dsn={}] get error!".format(self.db_username,
                                                                                                       self.db_password,
                                                                                                       self.db_dns))
-            logger.error("error:{}".format(err))
+            logger.error("Oracle-Error-Code:{}".format(error.code))
+            logger.error("Oracle-Error-Message:{}".format(error.message))
+            exit()
+        except Exception as oserr:
+            logger.error("Connect to Database [username={},password={},ora_dsn={}] get error!".format(self.db_username,
+                                                                                                      self.db_password,
+                                                                                                      self.db_dns))
+            logger.error("Connection Error:{}".format(oserr))
             exit()
         return cx_con
 
@@ -33,11 +42,17 @@ class OpsDb():
         try:
             db_cursor.execute(dml_sql.strip(strip_word))
             db_con_instance.commit()
-            logger.info("Execute DML statement <{}> success and commit".format(dml_sql.strip(strip_word)))
+            logger.info("execute DML statement <{}> success and commit".format(dml_sql.strip(strip_word)))
             db_cursor.close()
-        except Exception as err:
+        except cx_Oracle.DatabaseError as oraerr:
+            error, = oraerr.args
+            logger.error("Execute DDL statement [{}] get error.".format(dml_sql))
+            logger.error("Oracle-Error-Code:{}".format(error.code))
+            logger.error("Oracle-Error-Message:{}".format(error.message))
+            exit()
+        except Exception as oserr:
             logger.error("Execute DML statement [{}] get error.".format(dml_sql))
-            logger.error("error info:\n{}".format(err))
+            logger.error("error info:\n{}".format(oserr))
             db_con_instance.rollback()
             db_cursor.close()
             exit()
@@ -46,60 +61,47 @@ class OpsDb():
         db_cursor = db_con_instance.cursor()
         print("ddl = ", ddl_sql.strip(strip_word))
         try:
-            logger.debug("Execute DDL statement <{}>".format(ddl_sql))
-            # db_cursor.execute(ddl_sql.strip(strip_word))
-        except Exception as err:
+            logger.debug("Execute DDL = {}".format(ddl_sql))
+            #db_cursor.execute(ddl_sql.strip(strip_word))
+        except cx_Oracle.DatabaseError as oraerr:
+            error, = oraerr.args
             logger.error("Execute DDL statement [{}] get error.".format(ddl_sql))
-            logger.error("error info:\n{}".format(err))
+            logger.error("Oracle-Error-Code:{}".format(error.code))
+            logger.error("Oracle-Error-Message:{}".format(error.message))
+            exit()
+        except Exception as oserr:
+            logger.error("Execute DDL statement [{}] get error.".format(ddl_sql))
+            logger.error("error info:\n{}".format(oserr))
             db_cursor.close()
             exit()
 
     def select_data(self, db_con_instance, select_sql, strip_word=';'):
         db_cursor = db_con_instance.cursor()
+        total_count = 0
+        select_result=list()
         try:
             db_cursor.execute(select_sql.strip(strip_word))
             select_result = db_cursor.fetchall()
-        except Exception as err:
-            logger.error("Execute SELECT statement <{}> get error.".format(select_sql))
-            logger.error("error info:\n{}".format(err))
+            #print ("type,",type(select_result))
+            total_count = db_cursor.rowcount
+        except cx_Oracle.DatabaseError as oraerr:
+            error, = oraerr.args
+            logger.error("Execute DDL statement [{}] get error.".format(select_sql))
+            logger.error("Oracle-Error-Code:{}".format(error.code))
+            logger.error("Oracle-Error-Message:{}".format(error.message))
+            exit()
+        except Exception as oserr:
+            logger.error("Execute SELECT statement [{}] get error.".format(select_sql))
+            logger.error("error info:\n{}".format(oserr))
             db_cursor.close()
             exit()
-        return select_result
+        return select_result, total_count
 
     def export_data_from_table(self, table_name):
         pass
 
     ##导出AWR报告
     def export_awr_report(self):
-        '''
-1、根据取AWR报告的时间范围，查出快照ID；
-
-SELECT *
-  FROM DBA_HIST_SNAPSHOT T
- WHERE T.END_INTERVAL_TIME >=
-       TO_DATE('2017-10-09 09:00:00', 'yyyy-MM-dd hh24:mi:ss')
-   AND T.END_INTERVAL_TIME <=
-       TO_DATE('2017-10-09 10:01:00', 'yyyy-MM-dd hh24:mi:ss')
- ORDER BY SNAP_ID;
-2、利用第一步的END_INTERVAL_TIME,SNAP_ID,DBID,INSTANCE_NUMBER生成报告
-SELECT *
-  FROM TABLE(DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_HTML(1700577032,
-                                                      1,
-                                                      38247,
-                                                      38251,
-                                                      0));
-或者：
-SELECT DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_HTML(1700577032,
-                                                      1,
-                                                      38247,
-                                                      38251,
-                                                      0) FROM dual;
-3、把结果粘贴到一个txt中，比如a.txt保存退出。然后改此文件后缀为html,比如a.html.
-最后用浏览器打开a.html即可 ，如果需要生成txt格式的报告，
-则用DBMS_WORKLOAD_REPOSITORY.AWR_REPORT_TEXT这个函数即可
-https://blog.csdn.net/xuemeilu/article/details/78180615?locationNum=9&fps=1
-        :return:
-        '''
         pass
 
     ##导出ASH报告
@@ -115,8 +117,8 @@ https://blog.csdn.net/xuemeilu/article/details/78180615?locationNum=9&fps=1
         for drop_type in sql_cfg['drop_obj']:
             for onesql in sql_cfg['drop_obj'][drop_type]:
                 print("Process drop_type", drop_type)
-                logger.info("Clean DB_type {}".format(drop_type))
-                db_result_rows = self.select_data(self.cx_con, onesql)
+                db_result_rows, total_rows = self.select_data(self.cx_con, onesql)
+                logger.info("Clean DB_type {},Total counts {}".format(drop_type, total_rows))
                 if db_result_rows:
                     for row in db_result_rows:
                         # print ("row=",'.'.join(row))
@@ -124,5 +126,7 @@ https://blog.csdn.net/xuemeilu/article/details/78180615?locationNum=9&fps=1
 
 
 if __name__ == '__main__':
-    o = OpsDb('cpc', '1jian8Shu!', '172.16.80.11:11521/cc')
-    o.clean_db_schema_by_user()
+    o = OpsDb('cpc_flow', '1jian8Shu!', '172.16.80.11:11521/cc')
+    oi=o.connect_db()
+    o.select_data(oi,'select * from user')
+    #o.clean_db_schema_by_user()
